@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import Draggable from "react-draggable";
+import Image from "next/image";
 import { db, auth } from "@/lib/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import {
@@ -12,46 +12,41 @@ import {
   collection,
   query,
   onSnapshot,
+  // updateDoc,
   addDoc,
   serverTimestamp,
 } from "firebase/firestore";
-
-
+import IdeaNote, { Idea } from "@/components/ideaNote";
 interface RoomData {
   name: string;
 }
-interface Idea {
-  id: string;
-  text: string;
-  authorName: string;
-  position: { x: number; y: number };
-}
+
 
 export default function RoomPage() {
   const params = useParams();
   const roomId = params.roomId as string;
 
-  const [user] = useAuthState(auth);
+  const [user, loading] = useAuthState(auth);
   const [room, setRoom] = useState<RoomData | null>(null);
   const [ideas, setIdeas] = useState<Idea[]>([]);
 
   const [newIdeaText, setNewIdeaText] = useState("");
 
   useEffect(() => {
-    // ... (useEffect hook to fetch room and ideas data remains the same)
+    if (!roomId) return;
+
     const roomDocRef = doc(db, "rooms", roomId);
     getDoc(roomDocRef).then((docSnap) => {
-      if (docSnap.exists()) setRoom(docSnap.data() as RoomData);
+      if (docSnap.exists()){
+        setRoom(docSnap.data() as RoomData);
+      }
     });
-    const ideasCollectionRef = collection(db, "rooms", roomId, "ideas");
-    const q = query(ideasCollectionRef);
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const ideasData: Idea[] = [];
-      snapshot.forEach((doc) => {
-        ideasData.push({ id: doc.id, ...doc.data() } as Idea);
-      });
+
+    const ideasQuery = query(collection(db, "rooms", roomId, "ideas"));
+    const unsubscribe = onSnapshot(ideasQuery, (snapshot) => {
+      const ideasData = snapshot.docs.map((doc)=>({id: doc.id, ...doc.data()} as Idea));
       setIdeas(ideasData);
-    });
+    })
     return () => unsubscribe();
   }, [roomId]);
 
@@ -64,6 +59,7 @@ export default function RoomPage() {
       await addDoc(collection(db, "rooms", roomId, "Ideas"), {
         text: newIdeaText,
         authorName: user.displayName,
+        authorPhotoURL: user.photoURL,
         createdAt: serverTimestamp(),
         position: { x: 100, y: 100 },
       });
@@ -74,52 +70,60 @@ export default function RoomPage() {
     }
   };
 
-  return (
-    <>
-      <main className=" overflow-hidden">
-        <div className="fixed top-4 left-4 z-10 bg-white p-3 rounded-lg shadow-md">
-          <h1 className="font-bold text-lg">{room?.name || "Loading..."}</h1>
-          <Link href="/" className="text-sm text-blue-600 hover:underline">
-            &larr; Back to Rooms
-          </Link>
-          {/* Placeholder for the user's picture */}
-        </div>
-
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-10">
-          <form
-            onSubmit={handleAddIdea}
-            className="flex gap-2 opacity-40 rounded-lg"
-          >
-            <input
-              type="text"
-              value={newIdeaText}
-              onChange={(e) => setNewIdeaText(e.target.value)}
-              placeholder="new idea"
-              disabled={!user}
-              className="border p-2 rounded-lg"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 bg-amber-500"
-              disabled={!user}
-            >
-              Add
-            </button>
-          </form>
-        </div>
-        <div className="relative w-screen h-screen bg-gray-50">
-          {ideas.map((idea) => (
-            <Draggable key={idea.id} position={idea.position} bounds="parent">
-              <div className="absolute p-4 bg-yellow-200 rounded shadow-md w-48 cursor-move">
-                <p className="font-medium">{idea.text}</p>
-                <p className="text-sm text-gray-600 mt-2">
-                  - {idea.authorName}
-                </p>
-              </div>
-            </Draggable>
-          ))}
-        </div>
+  if (loading){
+    return(
+      <main className="flex items-center justify-center h-screen">
+        <p>Loading...</p>
       </main>
-    </>
+    )
+  }
+  return (
+    <main className=" overflow-hidden">
+      <div className="fixed top-4 left-4 z-10 bg-white p-3 rounded-lg shadow-md flex items-center gap-4">
+        <div>
+          <h1 className="font-bold text-lg">
+            {room?.name}
+          </h1>
+          <Link  href="/" className="text-sm text-blue-600 ">
+             Back to lobby
+          </Link>
+
+        </div>
+        {user && (
+          <Image 
+           src={user.photoURL!}
+            alt={user.displayName!}
+            width={40}
+            height={40}
+            className="rounded-full w-10 h-10"
+            title={user.displayName!}
+          />
+        )}
+      </div>
+
+      <div className="fixed top-4 left-1/2 -translate-x-0.5 z-10">
+        <form 
+         onSubmit={handleAddIdea}
+        >
+          <input
+            type="text"
+            value={newIdeaText}
+            className="flex gap-2 bg-white p-2 rounded-lg shadow-md"
+          />
+          <button 
+            type="submit"
+            disabled={!user}
+          >
+            add
+          </button>
+        </form>
+      </div>
+
+      <div>
+        {ideas.map((idea)=>(
+          <IdeaNote key={idea.id} idea={idea} roomId={roomId}/>
+        ))}
+      </div>
+    </main>
   );
 }
