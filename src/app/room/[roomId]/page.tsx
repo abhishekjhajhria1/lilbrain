@@ -45,6 +45,7 @@ export default function RoomPage() {
     const ideasQuery = query(collection(db, "rooms", roomId, "ideas"));
     const unsubscribe = onSnapshot(ideasQuery, (snapshot) => {
       const ideasData = snapshot.docs.map((doc)=>({id: doc.id, ...doc.data()} as Idea));
+      console.log("Data received from Firestore:", ideasData); 
       setIdeas(ideasData);
     })
     return () => unsubscribe();
@@ -108,6 +109,7 @@ export default function RoomPage() {
           <input
             type="text"
             value={newIdeaText}
+            onChange={(e) => setNewIdeaText(e.target.value)}
             className="flex gap-2 bg-white p-2 rounded-lg shadow-md"
           />
           <button 
