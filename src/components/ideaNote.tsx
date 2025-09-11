@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Draggable, { DraggableEvent, DraggableData } from "react-draggable";
 import { doc, deleteDoc, updateDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -30,6 +30,8 @@ export default function IdeaNote({ idea, roomId }: IdeaNoteProps) {
   // State for managing editing mode
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(idea.text);
+
+  const nodeRef = useRef(null);
 
   // A direct reference to this idea's document in Firestore
   const ideaDocRef = doc(db, "rooms", roomId, "ideas", idea.id);
@@ -105,13 +107,14 @@ export default function IdeaNote({ idea, roomId }: IdeaNoteProps) {
 
   return (
     <Draggable
+      nodeRef={nodeRef}
       position={idea.position}
       onStop={handleStop}
       bounds="parent"
       handle=".handle"
     >
       {/* UPDATED: Added 'group' for hover effects and cleaned up styling */}
-      <div className="group absolute bg-white border rounded-lg shadow-sm w-56">
+      <div ref={nodeRef} className="group  absolute bg-white border rounded-lg shadow-sm w-56">
         
         {/* UPDATED: The handle now uses the dynamic background color class */}
         <div className={`handle p-2 rounded-t-lg relative cursor-grab ${handleBgClass}`}>
