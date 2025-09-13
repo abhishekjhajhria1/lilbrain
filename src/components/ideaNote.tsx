@@ -110,7 +110,7 @@ export default function IdeaNote({ idea, roomId }: IdeaNoteProps) {
       nodeRef={nodeRef}
       position={idea.position}
       onStop={handleStop}
-      bounds="parent"
+      
       handle=".handle"
     >
       {/* UPDATED: Added 'group' for hover effects and cleaned up styling */}

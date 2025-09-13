@@ -49,7 +49,7 @@ const AddIdeaForm = ({
     // Use the transform state to convert screen coordinates to component coordinates
     const newPosition = {
       x: (centerOfScreenX - transformState.positionX) / transformState.scale,
-      y: (centerOfScreenY - transformState.positionY) / transformState.scale,
+      y: (centerOfScreenY - transformState.positionY) / transformState.scale
     };
 
     try {
@@ -91,12 +91,19 @@ const AddIdeaForm = ({
   );
 };
 
+const NOTE_WIDTH = 224;
+const NOTE_HEIGHT = 150;
+const PADDING = 200;
+
 // Main page component
 export default function RoomPage() {
   const params = useParams();
   const roomId = params.roomId as string;
   const [user, loading] = useAuthState(auth);
   const [room, setRoom] = useState<RoomData | null>(null);
+
+  const [canvasBounds, setCanvasBounds] = useState({ width: 2000, height: 2000, x:0, y:0 });
+
   const [ideas, setIdeas] = useState<Idea[]>([]);
 
   useEffect(() => {
@@ -120,6 +127,32 @@ export default function RoomPage() {
     return () => unsubscribe();
   }, [roomId]);
 
+  useEffect(() => {
+    if (ideas.length === 0) {
+      setCanvasBounds({ width: window.innerWidth, height: window.innerHeight, x:0, y:0});
+      return;
+    }
+
+    const bounds = ideas.reduce(
+      (acc, idea) => ({
+        minX: Math.min(acc.minX, idea.position.x),
+        minY: Math.min(acc.minY, idea.position.y),
+        maxX: Math.max(acc.maxX, idea.position.x),
+        maxY: Math.max(acc.maxY, idea.position.y),
+      }),
+      { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity}
+    );
+    const contentWidth = bounds.maxX + NOTE_WIDTH + PADDING;
+    const contentHeight = bounds.maxY + NOTE_HEIGHT + PADDING;
+
+    setCanvasBounds({ 
+      width: contentWidth + PADDING * 2,
+      height: contentHeight + PADDING * 2,
+      x: -bounds.minX + PADDING,
+      y: -bounds.minY + PADDING,
+    });
+  }, [ideas]);
+
   if (loading) {
     return (
       <main className="flex items-center justify-center h-screen">
@@ -129,17 +162,14 @@ export default function RoomPage() {
   }
 
   return (
-    <main className="overflow-hidden">
+    <main>
       <TransformWrapper>
         <>
           {/* Top-Left Floating Menu */}
           <div className="fixed top-4 left-4 z-10 bg-white p-3 rounded-lg shadow-md flex items-center gap-4">
             <div>
               <h1 className="font-bold text-lg">{room?.name}</h1>
-              <Link
-                href="/"
-                className="text-sm text-blue-600 hover:underline"
-              >
+              <Link href="/" className="text-sm text-blue-600 hover:underline">
                 &larr; Back to lobby
               </Link>
             </div>
@@ -163,12 +193,15 @@ export default function RoomPage() {
           <TransformComponent
             wrapperStyle={{ width: "100vw", height: "100vh" }}
             contentStyle={{
-              width: "100%",
-              height: "100%",
+              width: `${canvasBounds.width}px`,
+              height: `${canvasBounds.height}px`,
               backgroundColor: "#f9fafb",
             }}
           >
-            <div className="relative w-full h-full">
+            <div 
+            className="relative w-full h-full"
+            style={{ transform: `translate(${canvasBounds.x}px, ${canvasBounds.y}px)` }}
+            >
               {ideas.map((idea) => (
                 <IdeaNote key={idea.id} idea={idea} roomId={roomId} />
               ))}
