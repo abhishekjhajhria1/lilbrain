@@ -28,7 +28,7 @@ interface RoomData {
 }
 
 // Sub-component for the Add Idea form
-const AddIdeaForm = ({
+const Toolbar = ({
   roomId,
   user,
 }: {
@@ -67,27 +67,59 @@ const AddIdeaForm = ({
     }
   };
 
+  const handleDiagramClick= () => {
+    alert("i'm working on it");
+  }
+
   return (
-    <form
-      onSubmit={handleAddIdea}
-      className="flex gap-2 bg-white p-2 rounded-lg shadow-md"
-    >
-      <input
-        type="text"
-        value={newIdeaText}
-        onChange={(e) => setNewIdeaText(e.target.value)}
-        placeholder="Add an idea"
-        className="border p-2 rounded"
-        disabled={!user}
-      />
+    <div className="flex items-center gap-4 bg-white p-2 rounded-lg shadow-md">
+      {/* The existing form for adding text notes */}
+      <form onSubmit={handleAddIdea} className="flex gap-2">
+        <input
+          type="text"
+          value={newIdeaText}
+          onChange={(e) => setNewIdeaText(e.target.value)}
+          placeholder="Add an idea"
+          className="border p-2 rounded"
+          disabled={!user}
+        />
+        <button
+          type="submit"
+          className="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-400"
+          disabled={!user}
+        >
+          Add
+        </button>
+      </form>
+
+      {/* A divider */}
+      <div className="w-px h-8 bg-gray-200" />
+
+      {/* NEW: The placeholder button for diagrams */}
       <button
-        type="submit"
-        className="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-400"
+        onClick={handleDiagramClick}
+        className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-50"
+        title="Add Diagram (Coming Soon)"
         disabled={!user}
       >
-        Add
+        {/* An SVG icon for shapes */}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-6 w-6 text-gray-600"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l-1-1m5-5l-1-1m-6 0h.01M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"
+          />
+        </svg>
       </button>
-    </form>
+    </div>
+    
   );
 };
 
@@ -186,7 +218,7 @@ export default function RoomPage() {
 
           {/* Top-Center Toolbar */}
           <div className="fixed top-4 left-1/2 -translate-x-1/2 z-10">
-            <AddIdeaForm roomId={roomId} user={user ?? null} />
+            <Toolbar roomId={roomId} user={user ?? null} />
           </div>
 
           {/* The main canvas */}
