@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Draggable, { DraggableEvent, DraggableData } from "react-draggable";
 import { doc, deleteDoc, updateDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -25,6 +25,21 @@ type IdeaNoteProps = {
   idea: Idea;
   roomId: string;
 };
+// have to look here later 
+const useDebounceEffect = (effect: () => void, deps: React.DependencyList, delay:number ) => {
+  const callbackRef = useRef(effect);
+
+  useEffect(() => {
+    callbackRef.current = effect;
+  }, [effect]);
+
+  const depsKey = JSON.stringify(deps);
+
+  useEffect(() => {
+    const handler = setTimeout(() => callbackRef.current(), delay);
+    return () => clearTimeout(handler);
+  }, [depsKey, delay]);
+};
 
 export default function IdeaNote({ idea, roomId }: IdeaNoteProps) {
   // State for managing editing mode
@@ -36,6 +51,21 @@ export default function IdeaNote({ idea, roomId }: IdeaNoteProps) {
   // A direct reference to this idea's document in Firestore
   const ideaDocRef = doc(db, "rooms", roomId, "ideas", idea.id);
 
+  const [internalPosition, setInternalPosition] = useState(idea.position);
+
+  const handleWritePosition = (pos: {x: number, y: number})=>{
+    updateDoc(ideaDocRef, {position: pos}).catch(console.error);
+  };
+
+  useDebounceEffect(
+    () => {
+      handleWritePosition(internalPosition);
+    },[internalPosition],500
+  )
+
+  const handleDrag = (e: DraggableEvent, data: DraggableData) =>{
+    setInternalPosition({x: data.x, y: data.y});
+  }
   // Function to update the note's color in Firestore
   const handleChangeColor = async (newColor: string) => {
     try {
@@ -89,12 +119,6 @@ export default function IdeaNote({ idea, roomId }: IdeaNoteProps) {
     }
   };
 
-  // Function to update position after dragging
-  const handleStop = (e: DraggableEvent, data: DraggableData) => {
-    updateDoc(ideaDocRef, { position: { x: data.x, y: data.y } }).catch(
-      console.error
-    );
-  };
 
   // Function to format the Firestore timestamp
   const formatDate = (timestamp: Timestamp) => {
@@ -108,9 +132,8 @@ export default function IdeaNote({ idea, roomId }: IdeaNoteProps) {
   return (
     <Draggable
       nodeRef={nodeRef}
-      position={idea.position}
-      onStop={handleStop}
-      
+      position={internalPosition}
+      onDrag={handleDrag}
       handle=".handle"
     >
       {/* UPDATED: Added 'group' for hover effects and cleaned up styling */}
