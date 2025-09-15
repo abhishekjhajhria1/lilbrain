@@ -14,6 +14,7 @@ import {
   query,
   onSnapshot,
   addDoc,
+  setDoc,
   serverTimestamp,
 } from "firebase/firestore";
 import {
@@ -158,6 +159,23 @@ export default function RoomPage() {
 
     return () => unsubscribe();
   }, [roomId]);
+
+
+  useEffect(() => {
+    if(!user || !roomId) return;
+
+    const memberRef = doc(db, "rooms", roomId, "members", user.uid);
+
+    getDoc(memberRef).then((docSnap) => {
+      if(!docSnap.exists()) {
+        setDoc(memberRef, {
+          role: "member",
+          uid: user.uid,
+          joinedAt: serverTimestamp(),
+        });
+      }
+    });
+  }, [user, roomId]);
 
   useEffect(() => {
     if (ideas.length === 0) {
