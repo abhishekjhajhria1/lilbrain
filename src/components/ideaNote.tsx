@@ -5,6 +5,7 @@ import Draggable, { DraggableEvent, DraggableData } from "react-draggable";
 import { doc, deleteDoc, updateDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import Image from "next/image";
+import { useTransformContext } from "react-zoom-pan-pinch";
 
 // An array of available color options
 const COLORS = ["yellow", "blue", "green", "pink", "purple"];
@@ -45,6 +46,7 @@ export default function IdeaNote({ idea, roomId }: IdeaNoteProps) {
   // State for managing editing mode
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(idea.text);
+   const { transformState } = useTransformContext();
 
   const nodeRef = useRef(null);
 
@@ -64,8 +66,12 @@ export default function IdeaNote({ idea, roomId }: IdeaNoteProps) {
   )
 
   const handleDrag = (e: DraggableEvent, data: DraggableData) =>{
-    setInternalPosition({x: data.x, y: data.y});
-  }
+const { scale, positionX, positionY } = transformState;
+    const newPosition = {
+      x: (data.x - positionX) / scale,
+      y: (data.y - positionY) / scale,
+    };
+    setInternalPosition(newPosition);  }
   // Function to update the note's color in Firestore
   const handleChangeColor = async (newColor: string) => {
     try {
@@ -132,9 +138,12 @@ export default function IdeaNote({ idea, roomId }: IdeaNoteProps) {
   return (
     <Draggable
       nodeRef={nodeRef}
-      position={internalPosition}
       onDrag={handleDrag}
       handle=".handle"
+      position={{
+        x: internalPosition.x * transformState.scale + transformState.positionX,
+        y: internalPosition.y * transformState.scale + transformState.positionY
+      }}
     >
       {/* UPDATED: Added 'group' for hover effects and cleaned up styling */}
       <div ref={nodeRef} className="group  absolute bg-white border rounded-lg shadow-sm w-56">
